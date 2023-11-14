@@ -1,0 +1,65 @@
+---
+- name:  Install node and npm
+  hosts: 164.90.237.124
+  tasks:
+   - name: update apt repo and cache
+     apt: update_cache=yes force_apt_get=yes   #cache_valid_time=3600
+
+   - name:  install node and npm
+
+     apt: 
+      pkg: 
+       - nodejs
+       - npm
+
+- name: cereate user
+  hosts: 164.90.237.124
+  tasks:
+    - name: create user
+      user:
+        name: nana
+        comment: nana admin
+        group: admin 
+      register: user_creation_result
+
+  #  - debug: msg= {{user_creation_result}}
+
+- name: deploy nodejs app
+  hosts:  164.90.237.124
+  become: True
+  become_user: nana
+  vars_files:
+    -  project-vars 
+  vars:  
+     
+  #  - node_file_location: /home/nana/nodejs-app.tar 
+  tasks: 
+    # - name: Copy
+    #   copy: 
+    #     src: /home/khaled/IdeaProjects/nodejs-app.tar 
+    #     dest: /home/nana
+    - name: unpack
+      unarchive:
+        # src: /home/nana/nodejs-app.tar
+        src: "{{location}}"
+        dest: /home/nana
+        remote_src: yes
+
+    # - name: install dep
+    #   npm: 
+    #     path: /home/nana/js-app-master/app/package
+
+    - name: start app  
+      command: 
+        chdir: /home/nana/js-app-master/app
+        cmd: node server
+      async: 2000
+      poll: 0
+
+    - name: ensure app running
+      shell: ps aux | grep node
+      register: app_status
+      
+    - debug: msg= {{app_status}}
+
+    
